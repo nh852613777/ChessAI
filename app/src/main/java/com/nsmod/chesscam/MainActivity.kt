@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.bhlangonijr.chesslib.Board
-import com.github.bhlangonijr.chesslib.File
+import com.github.bhlangonijr.chesslib.File as ChessFile
 import com.github.bhlangonijr.chesslib.Piece
 import com.github.bhlangonijr.chesslib.Rank
 import com.github.bhlangonijr.chesslib.Side
@@ -150,7 +150,6 @@ class MainActivity : ComponentActivity() {
             val nativeFile = File(applicationInfo.nativeLibraryDir, "libstockfish.so")
             if (!nativeFile.exists()) return null
 
-            // Copy ra filesDir để đảm bảo quyền thực thi trên Android 10+
             val execFile = File(filesDir, "stockfish_exec")
             if (!execFile.exists()) {
                 nativeFile.inputStream().use { input ->
@@ -221,7 +220,7 @@ class MainActivity : ComponentActivity() {
                 Row {
                     for (f in fileRange) {
                         val sq = Square.values().first {
-                            it.rank == Rank.allRanks[r] && it.file == File.allFiles[f]
+                            it.rank == Rank.allRanks[r] && it.file == ChessFile.allFiles[f]
                         }
                         val piece = board.getPiece(sq)
                         val light = (r + f) % 2 == 0
