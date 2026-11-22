@@ -18,8 +18,21 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    - name: Download Stockfish binary
+      run: |
+        mkdir -p app/src/main/jniLibs/arm64-v8a
+        # Tải file từ Google Drive
+        curl -L -o app/src/main/jniLibs/arm64-v8a/libstockfish.so "https://drive.google.com/uc?export=download&id=1kXRjruKeNw5ipoSIs0S8uXnW2SF8QeDf"
+        chmod +x app/src/main/jniLibs/arm64-v8a/libstockfish.so
+
+    # Cấp quyền cho gradlew (nếu bạn đã up file gradlew lên)
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
+
+    # Tự động tạo Gradle Wrapper nếu bạn chưa up file gradlew
+    - name: Generate Gradle Wrapper (if missing)
+      run: gradle wrapper
+      if: hashFiles('gradlew') == ''
 
     - name: Build with Gradle
       run: ./gradlew assembleDebug
