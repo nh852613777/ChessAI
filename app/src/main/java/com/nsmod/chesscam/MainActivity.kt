@@ -144,17 +144,25 @@ class MainActivity : ComponentActivity() {
     }
 
     data class AnalysisResult(val bestMove: String, val score: String, val pv: String)
-
-    fun runStockfish(fen: String): AnalysisResult? {
+       fun runStockfish(fen: String): AnalysisResult? {
         try {
             val nativeFile = File(applicationInfo.nativeLibraryDir, "libstockfish.so")
-            if (!nativeFile.exists()) return null
+            if (!nativeFile.exists()) {
+                runOnUiThread { status = "Lỗi: Không tìm thấy libstockfish.so trong APK!" }
+                return null
+            }
 
             val execFile = File(filesDir, "stockfish_exec")
-            if (!execFile.exists()) {
-                nativeFile.inputStream().use { input ->
-                    execFile.outputStream().use { output -> input.copyTo(output) }
-                }
+            // Luôn copy đè để đảm bảo lấy bản mới nhất
+            nativeFile.inputStream().use { input ->
+                execFile.outputStream().use { output -> input.copyTo(output) }
+            }
+            
+            // Cấp quyền thực thi bằng lệnh hệ thống (chmod 755)
+            try {
+                val process = Runtime.getRuntime().exec("chmod 755 ${execFile.absolutePath}")
+                process.waitFor()
+            } catch (e: Exception) {
                 execFile.setExecutable(true, false)
             }
 
@@ -164,7 +172,16 @@ class MainActivity : ComponentActivity() {
 
             writer.write("uci\n"); writer.flush()
             var line: String?
-            while (true) { line = reader.readLine() ?: break; if (line == "uciok") break }
+            var uciOk = false
+            while (true) { 
+                line = reader.readLine() ?: break
+                if (line == "uciok") { uciOk = true; break } 
+            }
+            
+            if (!uciOk) {
+                runOnUiThread { status = "Lỗi: Stockfish không phản hồi UCI (có thể sai kiến trúc CPU)." }
+                return null
+            }
 
             writer.write("position fen $fen\n"); writer.flush()
             writer.write("go depth 15\n"); writer.flush()
@@ -198,9 +215,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
             writer.write("quit\n"); writer.flush(); process.waitFor()
-            return if (bestMove != null) AnalysisResult(bestMove, finalScore, finalPv) else null
+            
+            if (bestMove != null) {
+                return AnalysisResult(bestMove, finalScore, finalPv)
+            } else {
+                runOnUiThread { status = "Lỗi: Stockfish chạy nhưng không trả về bestmove." }
+                return null
+            }
+            
         } catch (e: Exception) {
-            e.printStackTrace(); return null
+            e.printStackTrace()
+            runOnUiThread { status = "Lỗi ngoại lệ: ${e.message}" }
+            return null
         }
     }
 
